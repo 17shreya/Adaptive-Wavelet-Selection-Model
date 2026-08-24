@@ -1,0 +1,278 @@
+# ============================================================
+# BioVid Heat Pain Database
+# Multimodal Physiological Pain Recognition Configuration
+# ============================================================
+
+dataset:
+  name: "BioVid Heat Pain Database"
+
+  modalities:
+    - ecg
+    - emg_trapezius
+    - gsr
+
+  classes:
+    BL1: 0
+    PA1: 1
+    PA2: 2
+    PA3: 3
+    PA4: 4
+
+
+# ============================================================
+# SIGNAL ACQUISITION
+# ============================================================
+
+signal:
+  sampling_rate: 512
+
+
+# ============================================================
+# SEGMENTATION
+# ============================================================
+
+segmentation:
+  window_duration_seconds: 5.5
+
+  window_size_samples: 2816
+
+  overlap: 0.50
+
+  step_size_samples: 1408
+
+
+# ============================================================
+# FILTERING
+# ============================================================
+
+filtering:
+
+  ecg:
+    lowcut: 0.5
+    highcut: 45.0
+    order: 4
+    notch_frequency: 50.0
+    notch_q: 30
+
+  emg_trapezius:
+    lowcut: 20.0
+    highcut: 250.0
+    order: 4
+    notch_frequency: 50.0
+    notch_q: 30
+
+  gsr:
+    cutoff: 0.5
+    order: 4
+
+
+# ============================================================
+# NORMALIZATION
+# ============================================================
+
+normalization:
+  method: "zscore_then_minmax"
+
+  min_value: 0.0
+  max_value: 1.0
+
+  epsilon: 1.0e-10
+
+
+# ============================================================
+# ADAPTIVE WAVELET SELECTION
+# ============================================================
+
+adaptive_wavelet_selection:
+
+  extension_mode: "symmetric"
+
+  candidate_wavelets:
+
+    ecg:
+      - db2
+      - db4
+      - db6
+      - sym4
+      - sym5
+      - coif3
+
+    emg_trapezius:
+      - db4
+      - db6
+      - db8
+      - sym6
+      - sym8
+      - coif3
+      - coif5
+
+    gsr:
+      - db2
+      - db4
+      - sym4
+      - sym5
+      - coif3
+
+
+# ============================================================
+# FINAL SELECTED WAVELETS
+# ============================================================
+
+dwt:
+
+  extension_mode: "symmetric"
+
+  ecg:
+    wavelet: "sym4"
+    level: 6
+
+  emg_trapezius:
+    wavelet: "sym6"
+    level: 5
+
+  gsr:
+    wavelet: "coif3"
+    level: 7
+
+
+# ============================================================
+# HIERARCHICAL FEATURE EXTRACTION
+# ============================================================
+
+features:
+
+  original_sampling_rate: 512
+
+  feature_groups:
+    - statistical
+    - energy
+    - entropy
+    - waveform
+    - hjorth
+    - spectral
+
+
+# ============================================================
+# STAGE 1 FEATURE SELECTION
+# Variance + Correlation
+# ============================================================
+
+variance_correlation:
+
+  variance_threshold: 0.0
+
+  correlation_threshold: 0.95
+
+
+# ============================================================
+# STAGE 2 FEATURE SELECTION
+# ANOVA + Random Forest
+# ============================================================
+
+anova_rf:
+
+  anova_weight: 0.50
+
+  random_forest_weight: 0.50
+
+  selection_ratio: 0.30
+
+  random_forest:
+    n_estimators: 300
+    random_state: 42
+    n_jobs: -1
+
+
+# ============================================================
+# CROSS-MODAL FEATURE FUSION
+# ============================================================
+
+fusion:
+
+  method: "direct_feature_concatenation"
+
+  attention: false
+
+  modality_weighting: false
+
+  representations:
+    - ecg
+    - emg
+    - gsr
+    - ecg_emg
+    - ecg_gsr
+    - emg_gsr
+    - fusion
+
+
+# ============================================================
+# 5-CLASS CLASSIFICATION
+# ============================================================
+
+multiclass:
+
+  classes:
+    - BL1
+    - PA1
+    - PA2
+    - PA3
+    - PA4
+
+  classifiers:
+    - SVM
+    - KNN
+    - DT
+
+  evaluation:
+    method: "StratifiedGroupKFold"
+    n_splits: 5
+    shuffle: true
+    group_variable: "subject_id"
+    random_state: 42
+
+
+# ============================================================
+# BINARY CLASSIFICATION
+# ============================================================
+
+binary:
+
+  tasks:
+    - ["BL1", "PA1"]
+    - ["BL1", "PA2"]
+    - ["BL1", "PA3"]
+    - ["BL1", "PA4"]
+
+  negative_class: "BL1"
+
+  positive_encoding: 1
+  negative_encoding: 0
+
+  model_selection:
+    metric: "macro_f1"
+
+    tie_breakers:
+      - balanced_accuracy
+      - roc_auc
+      - accuracy
+      - cohen_kappa
+
+  final_training:
+    use_train: true
+    use_validation: true
+
+  final_evaluation:
+    use_untouched_test: true
+
+
+# ============================================================
+# REPRODUCIBILITY
+# ============================================================
+
+reproducibility:
+
+  random_state: 42
+
+  numpy_seed: 42
+
+  sklearn_random_state: 42
