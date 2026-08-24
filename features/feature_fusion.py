@@ -2417,3 +2417,28 @@ class CrossModalFeatureFusion:
         return self.transform(
             modality_matrices
         )
+
+from pain_recognition.fusion.feature_fusion import (
+    CrossModalFeatureFusion,
+)
+
+
+cross_modal_fusion = (
+    CrossModalFeatureFusion()
+)
+
+
+train_representations = (
+    cross_modal_fusion.fit_transform(
+        {
+            "ecg":
+                X_train_ecg,
+
+            "emg_trapezius":
+                X_train_emg,
+
+            "gsr":
+                X_train_gsr,
+        }
+    )
+)
